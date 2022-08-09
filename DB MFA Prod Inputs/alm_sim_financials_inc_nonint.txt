@@ -1,0 +1,24 @@
+--MySQL Table: alm_sim_financials_inc_nonint
+
+select distinct s1.* from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+balance.beast_order as balsheet_order,
+balance.beast_details as balsheet_desc,
+balance.beast_iscat_code as balsheet_category_cd,
+balance.beast_wtd_rate as balsheet_balance
+
+from beast_tbl06_incomestmt_new balance
+full join sup_quarter_details sup_qtr
+on balance.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on balance.beast_client_id = client.client_id
+
+where balance.beast_details IN ('Projected Non Int Income','Projected Non Int Expense','Projected Provision','Projected Net Income'))s1
+where s1.report_date = '2022-06-30'
+
+order by s1.client_name, s1.balsheet_order asc;

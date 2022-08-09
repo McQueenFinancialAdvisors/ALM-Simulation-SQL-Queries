@@ -1,0 +1,107 @@
+--MySQL Table: alm_sim_financials_cu_networth_calc
+
+select distinct s2.* from(
+select
+s1.quarter_date as report_date,
+s1.client_number||'_'||s1.client_type as institution_id,
+s1.client_name,
+s1.client_number as client_id,
+s1.client_type,
+s1.total_assets_previous,
+s1.net_worth,
+(case when sum(s1.net_income)/nullif((sum(s1.total_assets_current) + sum(s1.total_assets_previous))/2,0) IS NULL
+       then 0
+       else sum(s1.net_income)/((sum(s1.total_assets_current) + sum(s1.total_assets_previous))/2)
+       end * (12/(date_part('month', s1.quarter_date)))) as return_on_assets,
+
+(case when sum(s1.net_income)/nullif(sum(s1.net_worth),0) IS NULL
+     then 0
+	 else sum(s1.net_income)/sum(s1.net_worth)
+	 end * (12/(date_part('month', s1.quarter_date)))) as return_on_equity,
+
+(case when sum(s1.net_worth)/nullif(sum(s1.total_assets_current),0) IS NULL
+      then 0
+      else sum(s1.net_worth) / sum(s1.total_assets_current) 
+      end) as networth_to_assets
+
+from(
+With pye as (select
+qtr_dtl.quarter_date,
+client.client_number,
+client.client_name,
+client.client_type,
+fs220.ncua_client_id,
+cast(fs220.ncua_acct_010 as double precision) as total_assets
+
+from beast_ncua_fs220 fs220
+full join quarter_details_list qtr_dtl
+on fs220.ncua_quarter_id = qtr_dtl.quarter_id 
+inner join client_master client
+on fs220.ncua_client_id = client.client_id
+
+where qtr_dtl.quarter_date in ((select cast((date_part('year', quarter_date)) - 1 || '-12-31' as date) as pye_date
+                                 from quarter_details_list))),
+
+pme as (select
+qtr_dtl.quarter_date,
+client.client_number,
+client.client_name,
+client.client_type,
+fs220a.ncua_client_id,
+fs220a.ncua_acct_997 as net_worth
+
+from beast_ncua_fs220a fs220a
+full join quarter_details_list qtr_dtl
+on fs220a.ncua_quarter_id = qtr_dtl.quarter_id 
+inner join client_master client
+on fs220a.ncua_client_id = client.client_id
+
+where qtr_dtl.quarter_date in ((select case when date_part('month', quarter_date) = '03' then cast((date_part('year', quarter_date)) - 1 || '-03-31' as date)
+											when date_part('month', quarter_date) = '06' then cast((date_part('year', quarter_date)) - 1 || '-06-30' as date)
+											when date_part('month', quarter_date) = '09' then cast((date_part('year', quarter_date)) - 1 || '-09-30' as date)													   
+											when date_part('month', quarter_date) = '12' then cast((date_part('year', quarter_date)) - 1 || '-12-31' as date)													  
+											end as pme_date
+                                 from quarter_details_list)))
+
+select
+qtr_dtl.quarter_date,
+client.client_number,
+client.client_name,
+client.client_type,
+fs220a."ncua_acct661A" as net_income,
+fs220a.ncua_acct115 as total_interest_income,
+fs220a.ncua_acct350 as total_interest_expense,
+pye.total_assets as total_assets_previous,
+cast(fs220.ncua_acct_010 as double precision) as total_assets_current,
+fs220a.ncua_acct_997 as net_worth,
+pme.net_worth as net_worth_previous
+
+
+from beast_ncua_fs220 fs220
+full join beast_ncua_fs220a fs220a
+on fs220.ncua_client_id = fs220a.ncua_client_id
+and fs220.ncua_quarter_id = fs220a.ncua_quarter_id
+full join quarter_details_list qtr_dtl
+on fs220.ncua_quarter_id = qtr_dtl.quarter_id
+inner join client_master client
+on fs220.ncua_client_id = client.client_id
+full join pye
+on fs220.ncua_client_id = pye.ncua_client_id
+and cast(date_part('year', qtr_dtl.quarter_date) - 1 || '-12-31' as date) = pye.quarter_date
+full join pme
+on fs220.ncua_client_id = pye.ncua_client_id
+and case when date_part('month', qtr_dtl.quarter_date) = '03' then cast((date_part('year', qtr_dtl.quarter_date)) - 1 || '-03-31' as date)
+		 when date_part('month', qtr_dtl.quarter_date) = '06' then cast((date_part('year', qtr_dtl.quarter_date)) - 1 || '-06-30' as date)
+		 when date_part('month', qtr_dtl.quarter_date) = '09' then cast((date_part('year', qtr_dtl.quarter_date)) - 1 || '-09-30' as date)													   
+		 when date_part('month', qtr_dtl.quarter_date) = '12' then cast((date_part('year', qtr_dtl.quarter_date)) - 1 || '-12-31' as date)
+	     end = pme.quarter_date)s1
+group by
+s1.quarter_date,
+s1.client_number,
+s1.total_assets_previous,
+s1.net_worth,
+s1.client_type,
+s1.client_name)s2
+
+where s2.report_date = '2022-06-30'
+;

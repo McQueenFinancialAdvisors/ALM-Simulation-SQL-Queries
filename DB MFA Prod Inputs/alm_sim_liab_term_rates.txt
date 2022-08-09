@@ -1,0 +1,51 @@
+--MySQL Table: alm_sim_liab_term_rates
+
+select distinct s1.* from(
+
+With balance_concat as(select distinct s1.* from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+termdep.beast_order as termdep_order,
+termdep.beast_details as termdep_category,
+termdep.beast_fv_flag as termdep_fv_flag,
+termdep.beast_depcode as termdep_code,
+termdep.beast_wtd_rate as termdep_balance
+
+from beast_tbl04_termdep_new termdep
+full join sup_quarter_details sup_qtr
+on termdep.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on termdep.beast_client_id = client.client_id
+
+where termdep.beast_details NOT IN ('Rate', 'Unused'))s1)
+
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+termdep.beast_order as termdep_order,
+balance_concat.termdep_category ||' '||'Rate' as termdep_category,
+termdep.beast_fv_flag as termdep_fv_flag,
+termdep.beast_depcode as termdep_code,
+termdep.beast_wtd_rate as termdep_rate
+
+from beast_tbl04_termdep_new termdep
+full join sup_quarter_details sup_qtr
+on termdep.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on termdep.beast_client_id = client.client_id
+full join balance_concat balance_concat
+on sup_qtr.quarter_date = balance_concat.report_date
+   and (client.client_number||'_'||client.client_type) = balance_concat.institution_id
+   and (termdep.beast_order - 1) = balance_concat.termdep_order
+
+where termdep.beast_details IN ('Rate'))s1
+where s1.report_date = '2022-06-30'
+
+order by s1.client_name asc, s1.termdep_order asc;

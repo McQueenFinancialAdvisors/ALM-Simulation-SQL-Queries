@@ -1,0 +1,10 @@
+select report_date, institution_id, client_name, client_id, client_type, category, segment, fv_flag, invest_category_cd, curr_balance, wtd_rate, wtd_coupon_rate, wtd_maturity_months, 
+yr1_income, yr2_income, grad_yr1_inc_dn_100bps, grad_yr1_inc_dn_200bps,grad_yr1_inc_dn_300bps,
+grad_yr1_inc_dn_400bps, grad_yr1_inc_dn_500bps, grad_yr1_inc_up_100bps, grad_yr1_inc_up_200bps, grad_yr1_inc_up_300bps, grad_yr1_inc_up_400bps, grad_yr1_inc_up_500bps,
+grad_yr1_inc_base, grad_yr2_inc_base, grad_yr2_inc_dn_100bps, grad_yr2_inc_dn_200bps, grad_yr2_inc_dn_300bps, grad_yr2_inc_dn_400bps, grad_yr2_inc_dn_500bps, grad_yr2_inc_up_100bps,
+grad_yr2_inc_up_200bps, grad_yr2_inc_up_300bps, grad_yr2_inc_up_400bps, grad_yr2_inc_up_500bps
+
+from alm_sim_mbs_invest_inc_gradual
+where report_date = '2022-06-30'
+
+order by client_name asc, report_date desc, row_id asc;

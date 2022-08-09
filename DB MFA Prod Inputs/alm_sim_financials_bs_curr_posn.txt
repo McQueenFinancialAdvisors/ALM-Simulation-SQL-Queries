@@ -1,0 +1,99 @@
+--MySQL Table: alm_sim_financials_bs_curr_posn
+
+select distinct s3.* from (
+select
+s2.report_date,
+s2.institution_id,
+s2.client_name,
+s2.client_id,
+s2.client_type,
+s2.display_group,
+case when s2.display_group = '1'  then 'Fed Funds'
+	 when s2.display_group = '2'  then 'Securities'
+	 when s2.display_group = '3'  then 'Loans'
+	 when s2.display_group = '4'  then 'Loan Loss Reserve'
+	 when s2.display_group = '5'  then 'Non Earning Assets'
+	 when s2.display_group = '6'  then 'Total Assets'
+	 when s2.display_group = '7'  then 'Total Deposits less Borrowings'
+	 when s2.display_group = '8'  then 'Total Other Liabilities'
+	 when s2.display_group = '9'  then 'Total Liabilities'
+	 when s2.display_group = '10'  then 'Total Equity'
+	 when s2.display_group = '11'  then 'Net Worth'
+end as display_desc,
+sum(current_position) as current_position_total
+
+from(
+select 
+s1.report_date,
+s1.institution_id,
+s1.client_name,
+s1.client_id,
+s1.client_type,
+s1.balsheet_order,
+s1.balsheet_category_cd,
+cast(case when s1.balsheet_category_cd = 'LN'   then '3'
+	      when s1.balsheet_category_cd = 'LLR'  then '4'
+	      when s1.balsheet_category_cd = 'INV'  then '2'
+	      when s1.balsheet_category_cd = 'GL'   then '2'
+	      when s1.balsheet_category_cd = 'FF'   then '1'
+	      when s1.balsheet_category_cd = 'FXA'  then '5'
+	      when s1.balsheet_category_cd = 'CASH' then '5'
+	      when s1.balsheet_category_cd = 'OA'   then '5'
+	      when s1.balsheet_category_cd = 'A'    then '6'
+	      when s1.balsheet_category_cd = 'DEP'  then '7'
+	      when s1.balsheet_category_cd = 'OL'   then '8'
+	      when s1.balsheet_category_cd = 'L'    then '9'
+	      when s1.balsheet_category_cd = 'E'    then '10'
+	      when s1.balsheet_category_cd = 'NW'   then '11'
+      end as integer) as display_group,
+case when s1.balsheet_category_cd = 'LN'   then 'Loans'
+	 when s1.balsheet_category_cd = 'LLR'  then 'Loan Loss Reserve'
+	 when s1.balsheet_category_cd = 'INV'  then 'Total Securities less FF'
+	 when s1.balsheet_category_cd = 'GL'   then 'Gain Loss AFS Portfolio'
+	 when s1.balsheet_category_cd = 'FF'   then 'Fed Funds'
+	 when s1.balsheet_category_cd = 'FXA'  then 'Total Fixed Assets'
+	 when s1.balsheet_category_cd = 'CASH' then 'Cash and Due From Banks'
+	 when s1.balsheet_category_cd = 'OA'   then 'Total Other Assets'
+	 when s1.balsheet_category_cd = 'A'    then 'Total Assets'
+	 when s1.balsheet_category_cd = 'DEP'  then 'Total Deposits less borrowings'
+	 when s1.balsheet_category_cd = 'OL'   then 'Total Other Liabilities'
+	 when s1.balsheet_category_cd = 'L'    then 'Total Liabilities'
+	 when s1.balsheet_category_cd = 'E'    then 'Total Equity'
+	 when s1.balsheet_category_cd = 'NW'   then 'Net Worth'
+end as description,	 
+case when s1.balsheet_category_cd = 'LN'   then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'LLR'  then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'INV'  then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'GL'   then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'FF'   then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'FXA'  then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'CASH' then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'OA'   then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'A'    then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'DEP'  then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'OL'   then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'L'    then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'E'    then s1.balsheet_balance
+	 when s1.balsheet_category_cd = 'NW'   then s1.balsheet_balance
+end as current_position
+
+from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+balance.beast_order as balsheet_order,
+balance.beast_details as balsheet_desc,
+balance.beast_bscat_code as balsheet_category_cd,
+balance.beast_wtd_rate as balsheet_balance
+
+from beast_tbl05_balancesheet_new balance
+full join sup_quarter_details sup_qtr
+on balance.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on balance.beast_client_id = client.client_id)s1
+where s1.balsheet_order in ('1','2','3','4','5','6','7','8','9','10','11','12','14','18'))s2
+group by s2.report_date, s2.institution_id, s2.display_group, s2.client_name, s2.client_id, s2.client_type)s3
+where s3.report_date = '2022-06-30'

@@ -1,0 +1,35 @@
+--MySQL Table: alm_sim_assets_invest_replace_rates
+
+select distinct s1.* from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+invest.client_id as client_id2, invest.client_order, invest.client_investment_details, invest.client_fv_flag, invest.client_wtd_avecpn, invest.client_current_balance, invest.client_wtd_rate,
+invest.client_wtd_months, invest.client_previous_repricing, invest.client_base_1, invest.client_inv_catg_code, invest.client_dn500_1, invest.client_dn400_1, invest.client_dn300_1, invest.client_dn200_1, invest.client_dn100_1, invest.client_base_2, invest.client_up100_1,
+invest.client_up200_1, invest.client_up300_1, invest.client_up400_1, invest.client_up500_1, invest.client_p_dn500_1, invest.client_p_dn400_1, invest.client_p_dn300_1,
+invest.client_p_dn200_1, invest.client_p_dn100_1, invest.client_p_current_repricing, invest.client_p_up100_1, invest.client_p_up200_1, invest.client_p_up300_1, invest.client_p_up400_1,
+invest.client_p_up500_1, invest.client_last_row, invest.client_quarter_id, invest.client_row_id, invest.client_file_id, invest.client_client_id
+
+from client_tbl02_investment_calc invest
+full join sup_quarter_details sup_qtr
+on invest.client_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on invest.client_client_id = client.client_id
+
+where invest.client_investment_details <> 'Unused'
+and invest.client_file_id in (select t.client_file_id
+from(select distinct s3.institution_id, max(s3.client_file_id) over (partition by s3.institution_id) as client_file_id 
+				     from (select distinct sup_qtr.quarter_date, client.client_number||'_'||client.client_type as institution_id, invest.client_file_id as client_file_id  
+										   from client_tbl02_investment_calc invest
+                                           full join sup_quarter_details sup_qtr
+                                           on invest.client_quarter_id = sup_qtr.quarter_id 
+                                           inner join client_master client
+                                           on invest.client_client_id = client.client_id)s3)t)
+
+)s1
+where s1.report_date = '2022-06-30'
+
+order by s1.client_name asc, s1.client_order asc;

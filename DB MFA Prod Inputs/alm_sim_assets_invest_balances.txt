@@ -1,0 +1,26 @@
+--MySQL Table: alm_sim_assets_invest_balances 
+
+select distinct s1.* from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+invest.beast_order as invest_order,
+invest.beast_details as invest_category,
+invest.beast_fv_flag as invest_fv_flag,
+invest.beast_invcatg_flag as invest_code,
+invest.beast_wtd_rate as invest_balance
+
+from beast_tbl02_invest_new invest
+full join sup_quarter_details sup_qtr
+on invest.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on invest.beast_client_id = client.client_id
+
+where invest.beast_details NOT IN ('Rate','Unused')
+      and invest.beast_invcatg_flag != 'FF')s1
+where s1.report_date = '2022-06-30'
+
+order by s1.client_name asc, s1.invest_order asc;

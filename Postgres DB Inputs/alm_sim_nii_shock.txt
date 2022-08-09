@@ -1,0 +1,7 @@
+select report_date, institution_id, client_name, client_id, client_type, category, sub_category, segment, dn_500bps, dn_400bps,
+dn_300bps, dn_200bps, dn_100bps, base_case, up_100bps, up_200bps, up_300bps, up_400bps, up_500bps
+
+from alm_sim_nii_shock
+where report_date = '2022-06-30'
+
+order by client_name asc, report_date desc, row_id asc;

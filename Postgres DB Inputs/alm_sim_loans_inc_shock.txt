@@ -1,0 +1,10 @@
+select report_date, institution_id, client_name, client_id, client_type, category, segment, fv_flag, reset_freq, curr_balance, wtd_rate, wtd_floor, wtd_cap, wtd_maturity_mo, 
+wtd_reset_mo, cpr_speed, smm, wal, base_principal_pymt, prepay_type, yr1_income, yr2_income, grad_yr1_inc_dn_100bps, grad_yr1_inc_dn_200bps,grad_yr1_inc_dn_300bps,
+grad_yr1_inc_dn_400bps, grad_yr1_inc_dn_500bps, grad_yr1_inc_up_100bps, grad_yr1_inc_up_200bps, grad_yr1_inc_up_300bps, grad_yr1_inc_up_400bps, grad_yr1_inc_up_500bps,
+grad_yr1_inc_base, grad_yr2_inc_base, grad_yr2_inc_dn_100bps, grad_yr2_inc_dn_200bps, grad_yr2_inc_dn_300bps, grad_yr2_inc_dn_400bps, grad_yr2_inc_dn_500bps, grad_yr2_inc_up_100bps,
+grad_yr2_inc_up_200bps, grad_yr2_inc_up_300bps, grad_yr2_inc_up_400bps, grad_yr2_inc_up_500bps
+
+from alm_sim_loans_inc_shock
+where report_date = '2022-06-30'
+
+order by client_name asc, report_date desc, row_id asc;

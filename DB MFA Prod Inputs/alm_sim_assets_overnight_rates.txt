@@ -1,0 +1,71 @@
+--MySQL Table: alm_sim_assets_overnight_rates 
+
+select distinct s1.* from(
+With rate_order as (
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+invest.beast_order as invest_order,
+(invest.beast_order) + 1 as rate_order
+
+from beast_tbl02_invest_new invest
+full join sup_quarter_details sup_qtr
+on invest.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on invest.beast_client_id = client.client_id
+
+where invest.beast_invcatg_flag = 'FF'),
+
+balance_concat as (select distinct s1.* from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+invest.beast_order as invest_order,
+invest.beast_details as invest_category,
+invest.beast_fv_flag as invest_fv_flag,
+invest.beast_invcatg_flag as invest_code,
+invest.beast_wtd_rate as invest_balance
+
+from beast_tbl02_invest_new invest
+full join sup_quarter_details sup_qtr
+on invest.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on invest.beast_client_id = client.client_id
+
+where invest.beast_details NOT IN ('Rate','Unused')
+      and invest.beast_invcatg_flag = 'FF')s1)
+
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+invest.beast_order as invest_order,
+balance_concat.invest_category ||' '||'Rate' as invest_category,
+invest.beast_fv_flag as invest_fv_flag,
+invest.beast_invcatg_flag as invest_code,
+invest.beast_wtd_rate as invest_rate
+
+from beast_tbl02_invest_new invest
+full join sup_quarter_details sup_qtr
+on invest.beast_quarter_id = sup_qtr.quarter_id
+inner join client_master client
+on invest.beast_client_id = client.client_id
+full join rate_order rate_order
+on sup_qtr.quarter_date = rate_order.report_date
+and client.client_number||'_'||client.client_type = rate_order.institution_id
+full join balance_concat balance_concat
+on sup_qtr.quarter_date = balance_concat.report_date
+   and (client.client_number||'_'||client.client_type) = balance_concat.institution_id
+   and (invest.beast_order - 1) = balance_concat.invest_order
+
+where invest.beast_details = 'Rate'
+      and invest.beast_details <> 'Unused'
+      and invest.beast_order = rate_order.rate_order)s1
+where s1.report_date = '2022-06-30'
+
+order by s1.client_name asc, s1.invest_order asc;

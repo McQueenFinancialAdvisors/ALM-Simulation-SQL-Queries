@@ -1,0 +1,52 @@
+--MySQL Table: alm_sim_assets_loan_rates
+
+select distinct s1.* from (
+
+With balance_concat as(select distinct s1.* from(
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+loans.beast_order as loan_order,
+loans.beast_details as loan_category,
+loans.beast_fv_flag as loan_fv_flag,
+loans.beast_mtg_flag as loan_code,
+loans.beast_wtd_rate as loan_balance
+
+from beast_tbl01_loans_new loans
+full join sup_quarter_details sup_qtr
+on loans.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on loans.beast_client_id = client.client_id
+
+where loans.beast_details NOT IN ('Rate','Unused'))s1)
+
+select
+sup_qtr.quarter_date as report_date,
+client.client_number||'_'||client.client_type as institution_id,
+client.client_name,
+client.client_number as client_id,
+client.client_type,
+loans.beast_order as loan_order,
+balance_concat.loan_category ||' '||'Rate' as loan_category,
+loans.beast_fv_flag as loan_fv_flag,
+loans.beast_mtg_flag as loan_code,
+loans.beast_wtd_rate as loan_rate
+
+
+from beast_tbl01_loans_new loans
+full join sup_quarter_details sup_qtr
+on loans.beast_quarter_id = sup_qtr.quarter_id 
+inner join client_master client
+on loans.beast_client_id = client.client_id
+full join balance_concat balance_concat
+on sup_qtr.quarter_date = balance_concat.report_date
+   and (client.client_number||'_'||client.client_type) = balance_concat.institution_id
+   and (loans.beast_order - 1) = balance_concat.loan_order
+
+where loans.beast_details = 'Rate')s1
+where s1.report_date = '2022-06-30'
+
+order by s1.client_name asc, s1.loan_order asc;
